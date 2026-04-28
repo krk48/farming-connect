@@ -1,41 +1,85 @@
-import { Link, useNavigate } from "react-router-dom";
-import { Sun, Moon } from "lucide-react";
-import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Sprout, Sun, Moon, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
 
-export default function Navbar({ loggedIn, setLoggedIn }) {
+export default function Navbar({ loggedIn, setLoggedIn, userRole, setUserRole }) {
   const [dark, setDark] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldUseDark = storedTheme ? storedTheme === "dark" : prefersDark;
+
+    setDark(shouldUseDark);
+    document.documentElement.classList.toggle("dark", shouldUseDark);
+  }, []);
+
   const toggleTheme = () => {
-    setDark(!dark);
-    document.documentElement.classList.toggle("dark");
+    setDark((prev) => {
+      const next = !prev;
+      document.documentElement.classList.toggle("dark", next);
+      localStorage.setItem("theme", next ? "dark" : "light");
+      return next;
+    });
   };
 
   const logout = () => {
     setLoggedIn(false);
+    setUserRole("");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
     navigate("/login");
   };
 
+  const navItems = [
+    { to: "/", label: "Home", end: true },
+    { to: "/about", label: "About" },
+    { to: "/public", label: "Public Feed" },
+  ];
+
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-10 shadow-md bg-white dark:bg-[#0f172a] text-black dark:text-white z-50">
+    <nav className="nav-shell">
+      <button
+        type="button"
+        className="nav-brand cursor-pointer flex items-center gap-2 bg-transparent border-0 p-0"
+        onClick={() => navigate("/")}
+      >
+        <Sprout size={26} />
+        <span>AGROVA</span>
+      </button>
 
-      <h1 className="font-extrabold text-2xl text-green-600 cursor-pointer"
-          onClick={()=> navigate("/")}>
-        AGROVA
-      </h1>
-
-      {/* 🔥 Final Navbar – Only these tabs allowed */}
-      <div className="flex gap-6 text-[15px] font-medium">
-        <Link to="/">Home</Link>
-        <Link to="/about">About</Link>
-
-        {!loggedIn && <Link to="/login">Login</Link>}
-        {loggedIn && <button onClick={logout}>Logout</button>}
+      <div className="nav-links">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+        {!loggedIn && (
+          <NavLink to="/login" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+            Login
+          </NavLink>
+        )}
       </div>
 
-      <button onClick={toggleTheme} className="p-2 rounded-full">
-        {dark ? <Sun size={22}/> : <Moon size={22}/>}
-      </button>
+      <div className="nav-actions">
+        {loggedIn && userRole && <span className="nav-role">{userRole}</span>}
+        {loggedIn && (
+          <button type="button" onClick={logout} className="nav-link active flex items-center gap-2 border-0 bg-transparent">
+            <LogOut size={16} />
+            Logout
+          </button>
+        )}
+        <button type="button" onClick={toggleTheme} className="theme-toggle">
+          {dark ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+      </div>
     </nav>
   );
 }

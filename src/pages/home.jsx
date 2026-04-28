@@ -4,30 +4,57 @@ export default function Home() {
   const navigate = useNavigate();
 
   return (
-    <div className="hero-real w-full h-screen flex flex-col justify-center items-center text-center px-6">
-      
-      <h1 className="text-white font-extrabold text-5xl md:text-6xl leading-tight drop-shadow-2xl">
-        AGROVA — The Future of <br /> Farming
-      </h1>
+    <div className="hero-real w-full flex items-center text-center px-6">
+      <div className="hero-content">
+        <div className="hero-chip mb-5">Smart Agriculture Network</div>
 
-      <p className="text-white/90 text-lg md:text-xl mt-4 max-w-2xl drop-shadow-lg">
-        Empowering farmers, experts, and the community with modern tools.
-      </p>
+        <h1 className="hero-title hero-home-title font-extrabold text-4xl md:text-6xl leading-tight drop-shadow-lg">
+          Agriculture that feels coordinated, modern, and alive.
+        </h1>
 
-      <div className="flex gap-6 mt-10">
-        <button
-          onClick={() => navigate("/login")}
-          className="px-7 py-3 bg-white text-gray-900 text-lg font-semibold rounded-full shadow-lg hover:scale-105 transition"
-        >
-          Get Started
-        </button>
-        
-        <button
-          onClick={() => navigate("/about")}
-          className="px-7 py-3 bg-blue-600 text-white text-lg font-semibold rounded-full shadow-lg hover:scale-105 transition"
-        >
-          Learn More
-        </button>
+        <p className="hero-home-copy text-base md:text-xl mt-5 max-w-3xl mx-auto">
+          Agrova turns crop updates, expert insight, and platform moderation into one visible system.
+          Farmers document progress, experts publish high-signal advice, and the public sees a living feed
+          instead of a static platform.
+        </p>
+
+        <div className="pill-row justify-center mt-8">
+          <span className="soft-pill hero-home-pill">Field Journals</span>
+          <span className="soft-pill hero-home-pill">Expert Intelligence</span>
+          <span className="soft-pill hero-home-pill">Public Trust Layer</span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
+          <button onClick={() => navigate("/login")} className="btn-hero-primary">
+            Enter Dashboard
+          </button>
+
+          <button onClick={() => navigate("/public")} className="btn-hero-secondary">
+            Explore Public Feed
+          </button>
+
+          <button onClick={() => navigate("/about")} className="btn-hero-secondary">
+            Learn More
+          </button>
+        </div>
+
+        <div className="metric-grid mt-12">
+          <div className="metric-card text-left">
+            <div className="metric-label">For Farmers</div>
+            <div className="metric-value">Visual</div>
+            <div className="metric-note">Share progress in a way experts can act on immediately.</div>
+          </div>
+          <div className="metric-card text-left">
+            <div className="metric-label">For Experts</div>
+            <div className="metric-value">Clear</div>
+            <div className="metric-note">Publish guidance that stays visible across the full ecosystem.</div>
+          </div>
+          <div className="metric-card text-left">
+            <div className="metric-label">For Admins</div>
+            <div className="metric-value">Control</div>
+            <div className="metric-note">Moderate everything from one high-signal operational layer.</div>
+          </div>
+        </div>
       </div>
     </div>
   );

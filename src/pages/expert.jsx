@@ -1,69 +1,273 @@
-import { useState } from "react";
-import { addExpertPost, getExpertPosts } from "../utils/storage.js";
+import { useState, useEffect } from "react";
+import {
+  createExpertPost,
+  getExpertPostsByUser,
+  getExpertPosts,
+  deleteExpertPost,
+  getFarmerPosts,
+  getCurrentUser,
+} from "../utils/api.js";
 
 export default function Expert() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [myExpertPosts, setMyExpertPosts] = useState([]);
+  const [allExpertPosts, setAllExpertPosts] = useState([]);
+  const [farmerPosts, setFarmerPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-  const posts = getExpertPosts().sort((a, b) => b.id - a.id);
+  const currentUser = getCurrentUser();
 
-  const publish = () => {
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const loadPosts = async () => {
+    try {
+      setIsLoading(true);
+      const [userPosts, allExpertPostsData, farmerPostsData] = await Promise.all([
+        currentUser ? getExpertPostsByUser(currentUser.id) : [],
+        getExpertPosts(),
+        getFarmerPosts(),
+      ]);
+      setMyExpertPosts(userPosts || []);
+      setAllExpertPosts(allExpertPostsData || []);
+      setFarmerPosts(farmerPostsData || []);
+    } catch (err) {
+      setError("Failed to load posts");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const publish = async () => {
     if (!title.trim() || !content.trim()) {
-      alert("Title & content required.");
+      setError("Title and content are required");
       return;
     }
-    addExpertPost({ title: title.trim(), content: content.trim() });
-    setTitle("");
-    setContent("");
-    alert("Expert post published!");
-    window.location.reload();
+
+    if (!currentUser) {
+      setError("Please log in first");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+      setSuccessMsg("");
+      await createExpertPost(title.trim(), content.trim());
+      setSuccessMsg("Your guidance is now live across Agrova.");
+      setTitle("");
+      setContent("");
+      await loadPosts();
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to publish post");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("Delete this post?")) return;
+
+    try {
+      await deleteExpertPost(postId);
+      setMyExpertPosts(myExpertPosts.filter((p) => p.id !== postId));
+      setAllExpertPosts(allExpertPosts.filter((p) => p.id !== postId));
+    } catch {
+      setError("Failed to delete post");
+    }
   };
 
   return (
-    <div className="page px-6 md:px-12 py-8">
-      <h1 className="text-3xl md:text-4xl font-bold text-sky-600 mb-2">
-        Expert Panel
-      </h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-6">
-        Share high-quality guidance for farmers.
-      </p>
+    <div className="page">
+      <div className="page-container">
+        <section className="page-hero">
+          <div className="hero-kicker">Expert Console</div>
+          <h1 className="hero-title mt-4 text-4xl md:text-6xl">Turn knowledge into visible field guidance.</h1>
+          <p className="hero-subtitle mt-4 text-base md:text-lg">
+            Publish recommendations that farmers can use immediately, then monitor real field updates in the
+            same workspace.
+          </p>
 
-      <div className="card max-w-2xl mb-8">
-        <input
-          className="w-full p-2.5 border rounded mb-3 bg-white dark:bg-slate-900"
-          placeholder="Post title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <textarea
-          className="w-full p-2.5 border rounded mb-3 bg-white dark:bg-slate-900 h-32"
-          placeholder="Write your expert advice..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-        />
-        <button onClick={publish} className="btn btn-primary">
-          Publish
-        </button>
-      </div>
-
-      <h2 className="text-xl font-semibold mb-3">Your Published Posts</h2>
-      {posts.length === 0 ? (
-        <p className="text-gray-500">No posts yet.</p>
-      ) : (
-        <div className="grid md:grid-cols-2 gap-5">
-          {posts.map((p) => (
-            <div key={p.id} className="card">
-              <h3 className="font-semibold text-emerald-700 mb-1">
-                {p.title}
-              </h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                {p.content}
-              </p>
-              <p className="mt-2 text-[11px] text-gray-500">{p.date}</p>
+          <div className="metric-grid">
+            <div className="metric-card">
+              <div className="metric-label">Your Posts</div>
+              <div className="metric-value">{myExpertPosts.length}</div>
+              <div className="metric-note">Guidance notes published from your expert account.</div>
             </div>
-          ))}
+            <div className="metric-card">
+              <div className="metric-label">Network Guidance</div>
+              <div className="metric-value">{allExpertPosts.length}</div>
+              <div className="metric-note">Total expert posts visible across the platform.</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">Farmer Signals</div>
+              <div className="metric-value">{farmerPosts.length}</div>
+              <div className="metric-note">Recent farmer updates available to review.</div>
+            </div>
+          </div>
+        </section>
+
+        <div className="dashboard-grid">
+          <div className="dashboard-stack">
+            {error && (
+              <div className="surface panel border border-red-200 text-red-700 dark:border-red-900/40 dark:text-red-300">
+                {error}
+              </div>
+            )}
+
+            {successMsg && (
+              <div className="surface panel border border-emerald-200 text-emerald-700 dark:border-emerald-900/40 dark:text-emerald-300">
+                {successMsg}
+              </div>
+            )}
+
+            <section className="surface panel">
+              <div className="section-title-row">
+                <div>
+                  <div className="eyebrow">Publish Guidance</div>
+                  <h2 className="section-title mt-3">Create an expert post</h2>
+                  <p className="section-copy mt-2">
+                    Keep it specific, practical, and immediately useful for field decisions.
+                  </p>
+                </div>
+              </div>
+
+              <div className="content-grid">
+                <input
+                  className="w-full p-3"
+                  placeholder="Write a sharp, specific title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+
+                <textarea
+                  className="w-full p-3 h-36"
+                  placeholder="Explain what farmers should do, what to watch for, and why it matters."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
+
+                <div className="pill-row">
+                  <span className="soft-pill">Actionable advice</span>
+                  <span className="soft-pill">Cross-platform visibility</span>
+                  <span className="soft-pill">Farmer-facing clarity</span>
+                </div>
+
+                <button
+                  onClick={publish}
+                  disabled={isLoading}
+                  className={`btn w-full md:w-fit ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {isLoading ? "Publishing..." : "Publish Guidance"}
+                </button>
+              </div>
+            </section>
+
+            <section className="surface panel">
+              <div className="section-title-row">
+                <div>
+                  <div className="eyebrow">Owned By You</div>
+                  <h2 className="section-title mt-3">Your expert posts</h2>
+                </div>
+              </div>
+
+              {myExpertPosts.length === 0 ? (
+                <p className="section-copy">You have not published any expert posts yet.</p>
+              ) : (
+                <div className="feed-grid">
+                  {myExpertPosts.map((p) => (
+                    <article key={p.id} className="card post-card">
+                      <h3 className="text-lg font-extrabold text-emerald-700">{p.title}</h3>
+                      <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">{p.content}</p>
+                      <div className="post-meta mt-4">
+                        <span>By {p.username}</span>
+                        <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <button onClick={() => handleDeletePost(p.id)} className="action-link mt-4">
+                        Remove Post
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="dashboard-stack">
+            <section className="surface panel">
+              <div className="section-title-row">
+                <div>
+                  <div className="eyebrow">Platform Feed</div>
+                  <h2 className="section-title mt-3">All expert posts</h2>
+                </div>
+              </div>
+
+              {allExpertPosts.length === 0 ? (
+                <p className="section-copy">No expert posts yet.</p>
+              ) : (
+                <div className="content-grid">
+                  {allExpertPosts.map((p) => (
+                    <article key={p.id} className="card post-card">
+                      <h3 className="text-lg font-extrabold text-emerald-700">{p.title}</h3>
+                      <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">{p.content}</p>
+                      <div className="post-meta mt-4">
+                        <span>By {p.username}</span>
+                        <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      {currentUser?.id === p.userId && (
+                        <button onClick={() => handleDeletePost(p.id)} className="action-link mt-4">
+                          Remove Post
+                        </button>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="surface panel">
+              <div className="section-title-row">
+                <div>
+                  <div className="eyebrow">Field Reality</div>
+                  <h2 className="section-title mt-3">Farmer progress updates</h2>
+                  <p className="section-copy mt-2">
+                    Review the visual context behind the questions and conditions on the ground.
+                  </p>
+                </div>
+              </div>
+
+              {farmerPosts.length === 0 ? (
+                <p className="section-copy">No farmer posts yet.</p>
+              ) : (
+                <div className="content-grid">
+                  {farmerPosts.map((p) => (
+                    <article key={p.id} className="card post-card">
+                      {p.imageData && (
+                        <img
+                          src={p.imageData}
+                          alt="Crop"
+                          className="mb-4 rounded-[18px] max-h-72 w-full object-cover"
+                        />
+                      )}
+                      <p className="font-semibold text-base text-gray-800 dark:text-gray-200">{p.caption}</p>
+                      <div className="post-meta mt-4">
+                        <span>By {p.username}</span>
+                        <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
